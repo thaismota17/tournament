@@ -1,13 +1,15 @@
+from prettytable import PrettyTable
 filename = "matches.txt"
 
 
 class Team:
-    def __init__(self, teamName, matchesPlayed, matchesWon, matchesDraw, matchesLost):
+    def __init__(self, teamName, matchesPlayed, matchesWon, matchesDraw, matchesLost, points):
         self.teamName = teamName
         self.matchesPlayed = matchesPlayed
         self.matchesWon = matchesWon
         self.matchesDraw = matchesDraw
         self.matchesLost = matchesLost
+        self.points = points
 
 
 class Match:
@@ -17,73 +19,76 @@ class Match:
         self.result = result
 
 
-def registerMatches(filename):
+def register_matches(filename):
     matches = []
+    teams= []
+
     with open(filename, 'r') as file:
         for line in file:
             match = [l.strip() for l in line.split(';')]
-            matches.append(Match(match[0], match[1], match[2]))
-        return matches
-
-        # TODO: Validate match
-
-
-def registerTeams(matches):
-    teams = []
-    for match in matches:
-        if len(teams) == 0:
-            teams.append(Team(match.firstTeam, 0, 0, 0, 0))
-        if not any(x for x in teams if x.teamName == match.firstTeam):
-            teams.append(Team(match.firstTeam, 0, 0, 0, 0))
-        if not any(x for x in teams if x.teamName == match.secondTeam):
-            teams.append(Team(match.secondTeam, 0, 0, 0, 0))
-    return teams
+            firstTeam = register_team(match[0], teams)
+            secondTeam = register_team(match[1], teams)
+            match = Match(firstTeam, secondTeam, match[2])
+            matches.append(match)
+            compute_result(match)
+        return teams
 
 
-def scoresTeams(teams, matches):
-    for match in matches:
-        if(match.result == 'win'):
-            for team in teams:
-                if team.teamName == match.firstTeam:
-                    team.matchesPlayed = team.matchesPlayed + 1
-                    team.matchesWon = team.matchesWon + 1
-                if team.teamName == match.secondTeam:
-                    team.matchesPlayed = team.matchesPlayed + 1
-                    team.matchesLost = team.matchesLost + 1
+def register_team(teamName, teams):
+    team = next((x for x in teams if x.teamName == teamName), None)
+    if(team is not None):
+        return team
 
-        if(match.result == 'drawn'):
-            for team in teams:
-                if team.teamName == match.firstTeam:
-                    team.matchesPlayed = team.matchesPlayed + 1
-                if team.teamName == match.secondTeam:
-                    team.matchesPlayed = team.matchesPlayed + 1
+    team = Team(teamName, 0, 0, 0, 0, 0)
+    teams.append(team)
+    return team
 
-        if(match.result == 'loss'):
-            for team in teams:
-                if team.teamName == match.firstTeam:
-                    team.matchesPlayed = team.matchesPlayed + 1
-                if team.teamName == match.secondTeam:
-                    team.matchesPlayed = team.matchesPlayed + 1
-    return teams
+
+def compute_result(match):
+    if match.result == 'win':
+        match.firstTeam.matchesPlayed += 1
+        match.firstTeam.matchesWon += 1
+        match.firstTeam.points += 3
+
+        match.secondTeam.matchesPlayed += 1
+        match.secondTeam.matchesLost += 1
+    elif match.result == 'loss':
+        match.firstTeam.matchesPlayed += 1
+        match.firstTeam.matchesLost += 1
+
+        match.secondTeam.matchesPlayed += 1
+        match.secondTeam.matchesWon += 1
+        match.secondTeam.points += 3
+    elif match.result == 'drawn':
+        match.firstTeam.matchesPlayed += 1
+        match.firstTeam.matchesDraw += 1
+        match.firstTeam.points += 1
+
+        match.secondTeam.matchesPlayed += 1
+        match.secondTeam.matchesDraw += 1
+        match.secondTeam.points += 1
 
 
 def main():
 
     try:
-        matches = registerMatches(filename)
-        teams = registerTeams(matches)
-        scores = scoresTeams(teams, matches)
+        teams = register_matches(filename)
+        teams.sort(key=lambda x: x.points, reverse=True)
 
+        x = PrettyTable()
+        x.field_names = ["Team", "MP", "Won", "Drawn", "Lost", "Points"]
         for team in teams:
-            print(team.teamName)
+            x.add_row([team.teamName, team.matchesPlayed, team.matchesWon,
+                       team.matchesDraw, team.matchesLost, team.points])
 
-        for score in scores:
-            print("-------------------------------------")
-            print("Team Name: " + str(score.teamName))
-            print("Matches Played: " + str(score.matchesPlayed))
+        print(x)
 
     except FileNotFoundError:
         print('File does not exist')
 
+    except IndexError:
+        print('Invalid Input')
 
-main()
+
+if __name__ == '__main__':
+    main()

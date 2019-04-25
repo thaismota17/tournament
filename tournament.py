@@ -21,7 +21,7 @@ class Match:
 
 def register_matches(filename):
     matches = []
-    teams= []
+    teams = []
 
     with open(filename, 'r') as file:
         for line in file:
@@ -81,6 +81,8 @@ def main():
             x.add_row([team.teamName, team.matchesPlayed, team.matchesWon,
                        team.matchesDraw, team.matchesLost, team.points])
 
+        with open("score.txt", 'w') as file:
+            file.write(str(x))
         print(x)
 
     except FileNotFoundError:
